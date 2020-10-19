@@ -1,0 +1,10 @@
+---
+title: "Reading data from web"
+output: github_document
+---
+
+```{r setup}
+library(tidyverse)
+library(rvest)
+library(httr)
+```
