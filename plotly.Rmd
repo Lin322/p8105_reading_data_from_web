@@ -1,0 +1,68 @@
+---
+title: "plotly"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# This page has plotly examples
+
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+
+library(plotly)
+```
+
+
+```{r}
+data("ny_noaa") 
+head(ny_noaa)
+```
+```{r}
+noaa_2008_snow = 
+ny_noaa %>% 
+  drop_na(snow) %>% 
+  separate(date, sep="-", into = c("year", "month", "day"), convert = TRUE) %>% 
+  filter(
+    year == "2008", 
+    month == "11",
+    snow != "0") %>% 
+  mutate(
+    tmin = as.numeric(tmin),
+    tmax = as.numeric(tmax),
+    prcp = as.numeric(prcp)
+  ) %>% 
+  mutate(
+    tmin_c = tmin/10,
+    tmax_c = tmax/10,
+    prcp_mm = prcp/10
+  ) %>% 
+  select (id:day, snow, tmin_c:prcp_mm)
+
+head(noaa_2008_snow, 10) 
+```
+
+```{r}
+ployly = 
+noaa_2008_snow %>% 
+  plot_ly(y = ~snow, color = ~day, type = "box")
+```
+
+
+```{r}
+data("instacart")
+head(instacart)
+```
+```{r}
+line_box = 
+instacart %>% 
+  filter(aisle == "fresh vegetables") %>% 
+  group_by(order_hour_of_day, order_dow) %>% 
+	count(aisle) %>% 
+  arrange(desc(order_hour_of_day))
+
+
+```
+

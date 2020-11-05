@@ -1,0 +1,279 @@
+---
+title: "p8105_hw3_LF2649"
+author: "Lin Feng"
+date: '`r format(Sys.time(), "%Y-%m-%d")`'
+output: github_document
+
+
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(patchwork)
+library(p8105.datasets)
+knitr::opts_chunk$set(
+	fig.width = 6, 
+  fig.asp = .6,
+  out.width = "90%"
+)
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis" 
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+
+# Problem 1
+
+```{r}
+data("instacart")
+head(instacart)
+```
+
+This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)`  columns. 
+
+Observations are the level of items in orders by user. There are user / order variables -- user ID, order ID, order day, and order hour. There are also item variables -- name, aisle, department, and some numeric codes. 
+
+## How many aisles, and which are most items from?
+
+```{r}
+instacart %>% 
+	count(aisle) %>% 
+	arrange(desc(n))
+```
+
+
+## Make a plot
+
+```{r}
+instacart %>% 
+	count(aisle) %>% 
+	filter(n > 10000) %>% 
+	mutate(
+		aisle = factor(aisle),
+		aisle = fct_reorder(aisle, n)
+	) %>% 
+	ggplot(aes(x = aisle, y = n)) + 
+	geom_point() + 
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+
+## Make a table
+
+```{r}
+instacart %>% 
+	filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+	group_by(aisle) %>% 
+	count(product_name) %>% 
+	mutate(rank = min_rank(desc(n))) %>% 
+	filter(rank < 4) %>% 
+	arrange(aisle, rank) %>% 
+	knitr::kable()
+```
+
+
+## Apples vs ice cream..
+
+```{r}
+instacart %>% 
+	filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+	group_by(product_name, order_dow) %>% 
+	summarize(mean_hour = mean(order_hour_of_day)) %>% 
+	pivot_wider(
+		names_from = order_dow,
+		values_from = mean_hour
+	)
+```
+
+
+# Problem 2
+
+## Load and clean data
+
+* Load, tidy, and otherwise wrangle the data. 
+* Your final dataset should include all originally observed variables and values; 
+* have useful variable names; 
+* include a weekday vs weekend variable; 
+* and encode data with reasonable variable classes. 
+* Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
+
+```{r}
+accel_df = read_csv("./accel_data.csv") %>% 
+  janitor::clean_names() %>% 
+  rename_at(vars(starts_with("activity_")), funs(str_remove(., "activity_"))) %>% 
+  pivot_longer(
+    "1":"1440",
+    names_to = "minute",
+    values_to = "activity"
+  ) %>% 
+  mutate (minute = as.numeric(minute)) %>% 
+  mutate( weekday = case_when(
+    day %in% c("Monday","Tuesday","Wednesday","Thursday","Friday") ~ "weekday",
+    day %in% c("Saturday","Sunday") ~ "weekend")
+    ) %>% 
+  relocate(week, day_id, weekday, minute, activity, day)
+
+head(accel_df)
+```
+### Description
+This accelerometers data frames contains `r ncol(accel_df)` variables: `r names(accel_df)`. There are `r nrow(accel_df)` records in total that were collected on a 63 year-old male with BMI 25, who was admitted to the Advanced Cardiac Care Center of Columbia University Medical Center and diagnosed with congestive heart failure (CHF). The variable *activity* describes the activity counts for each minute of a 24-hour day starting at midnight.
+
+
+## Create each-day activity and a corresponding table
+
+* Traditional analyses of accelerometer data focus on the total activity over the day. 
+* Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. 
+* Are any trends apparent?
+
+
+```{r}
+accel_df %>% 
+  group_by(day_id, day) %>% 
+  summarise(activity_day = sum(activity)) 
+```
+### Trends: 
+It is hard to read some dinstictive trends from the table, but we can find that at day 24 and 31 we have the samllest count of activity, and the number is dramatcially samller than other day.  
+
+
+## Make a plot 
+
+* Accelerometer data allows the inspection activity over the course of the day. 
+* Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. 
+* Describe in words any patterns or conclusions you can make based on this graph.
+
+```{r}
+accel_df %>% 
+ggplot( aes(x = minute, y = activity, color = day)) + 
+  geom_line() + 
+   scale_x_continuous(
+    breaks = c(0, 360, 720, 1080, 1440), 
+    labels = c("0:00", "6:00", "12:00", "18:00", "24:00"))
+```
+
+### Trends 
+From this plot we can found that the most active time periods for this man are at night (approxiamtely from 7:30pm to 10:oopm) and before noon (about 10am to 12 am), and the most active day among a week are Friday and Sunday. 
+
+
+# Problem 3
+```{r}
+library(p8105.datasets)
+data("ny_noaa") 
+
+head(ny_noaa)
+```
+The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. 
+
+Then, do or answer the following (commenting on the results of each):
+
+## Data Cleaning
+
+* Do some data cleaning. 
+* Create separate variables for year, month, and day. 
+* Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. 
+* For snowfall, what are the most commonly observed values? Why? 
+
+```{r seperate}
+noaa_sep = 
+ny_noaa %>% 
+  separate(date, sep="-", into = c("year", "month", "day"), convert = TRUE) %>% 
+  mutate(
+    tmin = as.numeric(tmin),
+    tmax = as.numeric(tmax),
+    prcp = as.numeric(prcp)
+  ) %>% 
+  mutate(
+    tmin_c = tmin/10,
+    tmax_c = tmax/10,
+    prcp_mm = prcp/10
+  )
+  
+
+head(noaa_sep)  
+```
+
+
+```{r snow}
+ny_noaa %>% 
+  count(snow) %>% 
+  arrange(desc(n))
+
+```
+
+### the most commonly observed values is 0, becasue number of non-snow day is on avergae greater than snow day. 
+
+
+## Average tmax in Jan and Jul
+
+* Make a two-panel plot showing the average max temperature in January and in July in each station across years. 
+* Is there any observable / interpretable structure? Any outliers?
+  * In general the means of max temperature in July are higher and more stable than in January. There are several outliers in both plots. 
+
+```{r}
+tmaxc_mean_jj = 
+  noaa_sep %>%
+  filter(month %in% c("1", "7")) %>% 
+  group_by(id, year, month) %>% 
+  summarize(tmax_mean = mean (tmax_c, na.rm=TRUE)) 
+
+tmaxc_mean_plot_jan = 
+  tmaxc_mean_jj %>% 
+  filter(month ==  "1") %>% 
+  ggplot(aes(x = year, y = tmax_mean)) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(se =  FALSE) +
+  labs(
+    title = "January"
+  )
+  
+tmaxc_mean_plot_jul = 
+  tmaxc_mean_jj %>% 
+  filter(month == "7") %>% 
+  ggplot(aes(x = year, y = tmax_mean)) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(se =  FALSE) + 
+    labs(
+    title = "July"
+  )
+
+tmaxc_mean_plot_jan + tmaxc_mean_plot_jul
+```
+
+## tmax_timn plot
+
+* Make a two-panel plot showing 
+  * (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and 
+  * (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
+  
+  
+```{r i}
+tmax_tmin_plot = 
+  noaa_sep %>% 
+  ggplot(aes(x = tmax_c, y = tmin_c)) + 
+  geom_line(alpha = 0.5) + 
+  geom_smooth(se = FALSE)
+```
+
+  
+```{r ii}
+snow_plot = 
+  noaa_sep %>% 
+  mutate(
+    snowfall = as.numeric(snow), 
+    year = as.character(year)) %>% 
+  filter(snowfall > 0) %>% 
+  filter(100 > snowfall) %>% 
+  group_by(year) %>% 
+  ggplot(aes(x=year, y=snowfall), color=year)+
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+tmax_tmin_plot + snow_plot
+```
+
+##Description of the dataset
+This dataset contain `r ncol(ny_noaa)` core variables on `r names(ny_noaa)`for all New York state weather stations from January 1, 1981 through December 31, 2010. There are `r nrow(ny_noaa)` records in total. Each weather station may collect only a subset of these variables, and therefore this dataset contains extensive missing data, and that has an huge impact on analysis. For, example, when plotting the maximun and minimun temperature graph, we need to remove 1134358 rows containing missing values, which accounts for `r 1134358/nrow(ny_noaa)` in the total dataset. 
+

@@ -1,0 +1,39 @@
+---
+title: "My awesome website"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# This is Jeff's awesome website
+
+![](https://media.giphy.com/media/drXGoW1iudhKw/giphy.gif)
+
+## Subsection
+
+And some additional items: 
+
+### code chunk: 
+
+```{r}
+rnorm(8)
+```
+
+### Links: 
+
+Some useful data science tools:
+
+* [Google](https://www.google.com)
+* [P8105](https://p8105.com/index.html)
+* [Font Awesome](https://fontawesome.com/icons?from=io)
+
+### Local image
+
+<img src = "./IMG_20190609_123835.jpg" style = "width:75%">
+
+![](./IMG_20190609_123835.jpg)
+
+### Link to page within the site: 
+
+[About Me](about.html)
