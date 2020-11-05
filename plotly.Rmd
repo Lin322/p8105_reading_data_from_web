@@ -8,18 +8,37 @@ output:
 
 # This page has plotly examples
 
-```{r}
+## scatter plot: 
+
+continous x and y
+
+
+
+
+
+## violin plot: 
+continous y and categorical x
+
+
+
+```{r setup, include=FALSE}
 library(tidyverse)
 library(p8105.datasets)
 
 library(plotly)
+library(htmlwidgets)
 ```
 
+
+## box plot:
+continous y and categorical x
 
 ```{r}
 data("ny_noaa") 
 head(ny_noaa)
 ```
+
+
 ```{r}
 noaa_2008_snow = 
 ny_noaa %>% 
@@ -30,39 +49,63 @@ ny_noaa %>%
     month == "11",
     snow != "0") %>% 
   mutate(
-    tmin = as.numeric(tmin),
-    tmax = as.numeric(tmax),
-    prcp = as.numeric(prcp)
-  ) %>% 
-  mutate(
-    tmin_c = tmin/10,
-    tmax_c = tmax/10,
-    prcp_mm = prcp/10
-  ) %>% 
-  select (id:day, snow, tmin_c:prcp_mm)
+    day = as.character(day)) %>% 
+  select (year, month, day, snow)
 
 head(noaa_2008_snow, 10) 
 ```
 
 ```{r}
-ployly = 
+plotly_box = 
 noaa_2008_snow %>% 
-  plot_ly(y = ~snow, color = ~day, type = "box")
+  mutate(day = fct_reorder(day, snow)) %>% 
+  plot_ly(
+    y = ~snow, x= ~day, color = ~day, type = "box",
+    colors = "viridis")
 ```
 
+## bar plot: 
+count y and categorical x
 
 ```{r}
 data("instacart")
 head(instacart)
 ```
 ```{r}
-line_box = 
-instacart %>% 
-  filter(aisle == "fresh vegetables") %>% 
-  group_by(order_hour_of_day, order_dow) %>% 
+ployly_bar = 
+  instacart %>% 
+  filter(
+    aisle == "fresh vegetables"
+  ) %>% 
+  group_by(order_hour_of_day) %>% 
 	count(aisle) %>% 
-  arrange(desc(order_hour_of_day))
+  arrange(desc(n)) %>% 
+  mutate(
+    order_hour_of_day = as.character(order_hour_of_day)
+  ) %>% 
+  plot_ly(
+    x = ~order_hour_of_day, y = ~n, color = ~order_hour_of_day, type = "bar", 
+    colors = "viridis"
+  )
+```
 
 
+## box plot:
+continous y and categorical x
+
+```{r}
+instacart %>% 
+  select(days_since_prior_order, department) %>%
+  drop_na(days_since_prior_order)
+  plot_ly(
+    x = ~department, y = ~days_since_prior_order, color = ~department, type = "box", 
+    colors = "viridis"
+  )
+  
+instacart %>% 
+  select(aisle, product_name, department) %>% 
+  group_by(department) %>% 
+  count() %>% 
+  arrange(n)
 ```
 

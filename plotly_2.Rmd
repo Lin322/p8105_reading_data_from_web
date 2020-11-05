@@ -1,0 +1,86 @@
+---
+title: "plotly"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(p8105.datasets)
+
+library(plotly)
+library(htmlwidgets)
+```
+
+```{r data}
+data("instacart")
+head(instacart, 10)
+```
+
+## Scatter Plot: 
+continous x and y
+
+We want to know as the times of reorder increase, will the days before reorder be more fixed (the reason can be, for example, the customers have learned how long it will take to consume the prior-ordered stuff). We will use orders of "Large Alfresco Eggs" to make a plot, because in general the amount of eggs used is fairly constant among long period, and the "Large Alfresco Eggs" is the best seller . 
+
+```{r}
+
+#find out the best seller in "eggs"
+
+instacart %>%
+  select(aisle, product_name) %>% 
+    filter( 
+    aisle == "eggs"
+  ) %>% 
+  group_by(product_name) %>% 
+  count() %>% 
+  arrange()
+
+
+instacart %>%
+  filter(
+    days_since_prior_order %in% 1:29,
+    order_number >= 3, 
+    product_name == "Large Alfresco Eggs"
+  ) %>% 
+  mutate(
+    order_number = as.numeric(order_number),
+    days_since_prior_order = as.numeric(days_since_prior_order)) %>% 
+  select(order_number, days_since_prior_order) %>% 
+  arrange(days_since_prior_order) %>% 
+  plot_ly(
+    x = ~order_number, y = ~days_since_prior_order, type = 'scatter', mode = "markers")
+
+
+```
+
+
+## Box Plot:
+continous y and categorical x
+```{r}
+
+```
+
+
+## Bar Plot: 
+count y and categorical x
+
+We want to yake a look at the distribution of total number fresh vegatable orders among 24 hours (No orders at 3 am or 4 am). 
+```{r}
+instacart %>% 
+  filter(
+    aisle == "spirits"
+  ) %>% 
+  group_by(order_hour_of_day) %>% 
+	count(aisle) %>% 
+  mutate(
+    order_hour_of_day = as_factor(order_hour_of_day), 
+    text_label = str_c("Order Number: ", n)) %>% 
+  plot_ly(
+    x = ~order_hour_of_day, y = ~n, color = ~order_hour_of_day, type = "bar", 
+    colors = "viridis",  text = ~text_label, alpha = 0.8
+  )
+```
+
